@@ -50,7 +50,6 @@ void setup() {
     lcd.setCursor(0, 1);
     lcd.print("message....");
     responseCode = http.GET();
-    Serial.println(responseCode);
     delay(500);
   }
 }
@@ -68,7 +67,6 @@ void loop() {
         lcd.print("Message: ");
         flushWiFiBuffer();  // flush the buffer so scrollMessage properly runs
         lcd.setCursor(0, 1);
-        Serial.println(currentMessage);
         scrollMessage(1, currentMessage, 250, 16);
         lcd.setCursor(0, 1);
         lcd.print(currentMessage);
