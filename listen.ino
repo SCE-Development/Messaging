@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 #include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <HTTPClient.h>
 
 // setup lcd display
@@ -8,10 +9,11 @@ LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 // init the http and wifi objects
 HTTPClient http;
-WiFiClient wifi;
+WiFiClientSecure wifi;
 
-const char* ssid = "";
-const char* password = "";
+const char* ssid = "AAAA";
+const char* password = "BBBB";
+const char* url = "https://sce.sjsu.edu/api/messages/listen?id=XXXX&apiKey=YYYY";
 
 void setup() {
   Serial.begin(115200);
@@ -33,11 +35,14 @@ void setup() {
   lcd.print("Connected.");
   delay(1000);
 
-  // connect to sse
-  http.setReuse(true);
-  http.begin(wifi, "http://sce.sjsu.edu:8080/api/messages/listen");
+  wifi.setInsecure();
 
-  // wait for a message
+  // Connect to the SSE endpoint
+  http.setReuse(true);
+  http.begin(wifi, url);
+  http.addHeader("Connection", "keep-alive");
+
+  // This part of the code waits for the first message to be typed in the room.
   int responseCode;
   while (responseCode < 0) {
     lcd.clear();
@@ -45,40 +50,33 @@ void setup() {
     lcd.setCursor(0, 1);
     lcd.print("message....");
     responseCode = http.GET();
+    Serial.println(responseCode);
     delay(500);
   }
-
-
-
 }
 
 void loop() {
   if (http.connected()) {
     if (wifi.available()) {
       String line = wifi.readStringUntil('\n');
-        if (line.startsWith("event: error")) {
-          lcd.clear();
-          lcd.print("An error has");
-          lcd.setCursor(0, 1);
-          lcd.print("occurred.");
-          flushWiFiBuffer();
-        }
-        if (line.startsWith("data: ")) {
-          const char* currentMessage = line.substring(6).c_str();
-          
+      if (line.startsWith("data: ")) {
+        String currentMessage = line.substring(6).c_str();
 
-          lcd.clear();
-          lcd.setCursor(0,0);
-          lcd.print("Message: ")
-          flushWiFiBuffer(); // flush the buffer so scrollMessage properly runs
-          lcd.setCursor(0,1);
-          scrollMessage(currentMessage);
-        }
+        // Logic to display the message
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print("Message: ");
+        flushWiFiBuffer();  // flush the buffer so scrollMessage properly runs
+        lcd.setCursor(0, 1);
+        Serial.println(currentMessage);
+        scrollMessage(1, currentMessage, 250, 16);
+        lcd.setCursor(0, 1);
+        lcd.print(currentMessage);
+      }
     }
-  }
-  else {
-    // attempt to reconnect if the server crashes
-    int responseCode = -1; 
+  } else {
+    // Attempt to reconnect if the server crashes
+    int responseCode = -1;
     while (responseCode < 0) {
       lcd.clear();
       lcd.print("Reconnecting");
@@ -87,36 +85,28 @@ void loop() {
       responseCode = http.GET();
       delay(500);
     }
-
   }
-  
-  
+
+
 
   delay(500);
-
 }
 
-void scrollMessage(const char* message) {
-  int len = strlen(message);
-  if (len <= 16) {
-    lcd.setCursor(0, 1);
-    lcd.print(message);
-    delay(2000);
-  } else {
-    for (int i = 0; i < len - 15; i++) {
-      // if new text is available, exit out of the function
-      if (http.connected() && wifi.available()) {
-        return;
-      }
+// Function to scroll the message
+void scrollMessage(int row, String message, int delayTime, int lcdColumns) {
+  for (int i = 0; i < lcdColumns; i++) {
+    message = " " + message;
+  }
+  message = message + " ";
 
-      lcd.setCursor(0, 1);
-      lcd.print(message + i);
-      delay(250); 
-    }
-    delay(2000);
+  for (int pos = 0; pos < message.length(); pos++) {
+    lcd.setCursor(0, row);
+    lcd.print(message.substring(pos, pos + lcdColumns));
+    delay(delayTime);
   }
 }
 
+// flush whatever is in the buffer so that the next messages that are supposed to display actually displays properly
 void flushWiFiBuffer() {
   while (wifi.available()) {
     wifi.read();
