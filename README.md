@@ -5,7 +5,7 @@ Connects the LCD display to SCE Messaging API. Send messages to a chatroom on SC
 <img width="400" alt="image" src="https://github.com/user-attachments/assets/5d098c70-cbcd-4063-9df6-6ea4bed5f42e">
 
 
-## Prerequisite 
+## Prerequisites
 - ESP32 Dev Kit
 - 16x2 LCD Screen
 - Arduino IDE
