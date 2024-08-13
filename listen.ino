@@ -72,8 +72,12 @@ void loop() {
         // Logic to display the message
         lcd.clear();
         flushWiFiBuffer();  // flush the buffer so scrollMessage properly runs
+<<<<<<< HEAD
         lcd.setCursor(0, 0);
         lcd.print(currentTime);
+=======
+        lcd.setCursor(0, 1);
+>>>>>>> 54acdcaab0024fb30ca110649e65a13f0330d34a
         scrollMessage(1, currentMessage, 250, 16);
         lcd.setCursor(0, 1);
         lcd.print(currentMessage);
