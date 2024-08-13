@@ -3,6 +3,8 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <ArduinoJson.hpp>
 
 // setup lcd display
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -59,14 +61,19 @@ void loop() {
     if (wifi.available()) {
       String line = wifi.readStringUntil('\n');
       if (line.startsWith("data: ")) {
-        String currentMessage = line.substring(6).c_str();
+        String jsonString = line.substring(6).c_str();
+
+        JsonDocument doc;
+        deserializeJson(doc, jsonString);
+
+        const char* currentTime = doc["timestamp"];
+        const char* currentMessage = doc["message"];
 
         // Logic to display the message
         lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Message: ");
         flushWiFiBuffer();  // flush the buffer so scrollMessage properly runs
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0, 0);
+        lcd.print(currentTime);
         scrollMessage(1, currentMessage, 250, 16);
         lcd.setCursor(0, 1);
         lcd.print(currentMessage);
