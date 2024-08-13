@@ -3,6 +3,8 @@
 #include <WiFi.h>
 #include <WiFiClientSecure.h>
 #include <HTTPClient.h>
+#include <ArduinoJson.h>
+#include <TimeLib.h>
 
 // setup lcd display
 LiquidCrystal_I2C lcd(0x27, 16, 2);
@@ -59,14 +61,22 @@ void loop() {
     if (wifi.available()) {
       String line = wifi.readStringUntil('\n');
       if (line.startsWith("data: ")) {
-        String currentMessage = line.substring(6).c_str();
+        String jsonString = line.substring(6).c_str();
+
+        JsonDocument doc;
+        deserializeJson(doc, jsonString);
+
+        const long long unsigned int currentTime = doc["timestamp"];
+        const char* currentMessage = doc["message"];
+
+        time_t currentTimeConverted = time_t(currentTime / 1000);
 
         // Logic to display the message
         lcd.clear();
-        lcd.setCursor(0, 0);
-        lcd.print("Message: ");
         flushWiFiBuffer();  // flush the buffer so scrollMessage properly runs
-        lcd.setCursor(0, 1);
+        lcd.setCursor(0, 0);
+        String timeFormatted = getDateTime(currentTimeConverted);
+        lcd.print(timeFormatted);
         scrollMessage(1, currentMessage, 250, 16);
         lcd.setCursor(0, 1);
         lcd.print(currentMessage);
@@ -109,4 +119,21 @@ void flushWiFiBuffer() {
   while (wifi.available()) {
     wifi.read();
   }
+}
+
+// formats epoch time to a readable format
+String getDateTime(time_t t) {
+    String formattedDate = String(month(t)) + "/" + String(day(t)) + "/" + String(year(t));
+
+    String hourString = String(hour(t));
+    if (hour(t) < 10) {
+        hourString = "0" + hourString;
+    }
+
+    String minuteString = String(minute(t));
+    if (minute(t) < 10) {
+        minuteString = "0" + minuteString;
+    }
+
+    return formattedDate + " " + hourString + ":" + minuteString;
 }
